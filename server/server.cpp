@@ -23,6 +23,7 @@ string gen_token() {
 }
 
 int main() {
+    fs::create_directory("vault");
     init_db();
 
     Server svr;
