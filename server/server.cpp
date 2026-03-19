@@ -91,14 +91,14 @@ int main() {
 
     // UPLOAD
     svr.Post("/upload", [&](const Request& req, Response& res) {
-        string token = req.get_param_value("token");
+        string filename = req.get_param_value("file");
         string user;
 
-        if (!validate_session(token, user)) {
+        if (!validate_session(filename, user)) {
             res.status = 403; return;
         }
 
-        ofstream f("vault/" + user + ".bin", ios::binary);
+        ofstream f("vault/" + user + "_" + filename, ios::binary);
         f.write(req.body.data(), req.body.size());
 
         res.set_content("stored", "text/plain");
@@ -106,14 +106,14 @@ int main() {
 
     // DOWNLOAD
     svr.Get("/download", [&](const Request& req, Response& res) {
-        string token = req.get_param_value("token");
+        string filename = req.get_param_value("file");
         string user;
 
-        if (!validate_session(token, user)) {
+        if (!validate_session(filename, user)) {
             res.status = 403; return;
         }
 
-        ifstream f("vault/" + user + ".bin", ios::binary);
+        ifstream f("vault/" + user + "_" + filename, ios::binary);
         string data((istreambuf_iterator<char>(f)), {});
 
         res.set_content(data, "application/octet-stream");
