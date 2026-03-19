@@ -91,33 +91,54 @@ int main() {
 
     // UPLOAD
     svr.Post("/upload", [&](const Request& req, Response& res) {
-        string filename = req.get_param_value("file");
-        string user;
+    string token = req.get_param_value("token");   // ✅ FIX
+    string filename = req.get_param_value("file");
+    string user;
 
-        if (!validate_session(filename, user)) {
-            res.status = 403; return;
-        }
+    if (!validate_session(token, user)) {          // ✅ FIX
+        res.status = 403; 
+        return;
+    }
 
-        ofstream f("vault/" + user + "_" + filename, ios::binary);
-        f.write(req.body.data(), req.body.size());
+    // 🚨 security check
+    if (filename.find("..") != string::npos) {
+        res.status = 400;
+        return;
+    }
 
-        res.set_content("stored", "text/plain");
-    });
+    ofstream f("vault/" + user + "_" + filename, ios::binary);
+    f.write(req.body.data(), req.body.size());
 
+    res.set_content("stored", "text/plain");
+});
     // DOWNLOAD
     svr.Get("/download", [&](const Request& req, Response& res) {
-        string filename = req.get_param_value("file");
-        string user;
+    string token = req.get_param_value("token");   // ✅ FIX
+    string filename = req.get_param_value("file");
+    string user;
 
-        if (!validate_session(filename, user)) {
-            res.status = 403; return;
-        }
+    if (!validate_session(token, user)) {          // ✅ FIX
+        res.status = 403; 
+        return;
+    }
 
-        ifstream f("vault/" + user + "_" + filename, ios::binary);
-        string data((istreambuf_iterator<char>(f)), {});
+    // 🚨 security check
+    if (filename.find("..") != string::npos) {
+        res.status = 400;
+        return;
+    }
 
-        res.set_content(data, "application/octet-stream");
-    });
+    ifstream f("vault/" + user + "_" + filename, ios::binary);
+
+    if (!f) {                                     // ✅ IMPORTANT
+        res.status = 404;
+        res.set_content("file not found", "text/plain");
+        return;
+    }
+
+    string data((istreambuf_iterator<char>(f)), {});
+    res.set_content(data, "application/octet-stream");
+});
 
     int port = getenv("PORT") ? stoi(getenv("PORT")) : 8080;
     svr.listen("0.0.0.0", port);
