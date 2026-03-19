@@ -5,7 +5,8 @@
 #include <fstream>
 #include "crypto.h"
 #include "db.h"
-
+#include <filesystem>
+namespace fs = std::filesystem;
 using namespace httplib;
 using namespace std;
 
@@ -110,6 +111,33 @@ int main() {
     f.write(req.body.data(), req.body.size());
 
     res.set_content("stored", "text/plain");
+});
+
+    // LIST ALL THE FILES
+    svr.Get("/list", [&](const Request& req, Response& res) {
+    string token = req.get_param_value("token");
+    string user;
+
+    if (!validate_session(token, user)) {
+        res.status = 403;
+        return;
+    }
+
+    string result;
+
+    for (const auto& entry : fs::directory_iterator("vault")) {
+        string name = entry.path().filename().string();
+
+        string prefix = user + "_";
+
+        if (name.rfind(prefix, 0) == 0) {
+            // remove "user_" prefix
+            string filename = name.substr(prefix.size());
+            result += filename + "\n";
+        }
+    }
+
+    res.set_content(result, "text/plain");
 });
     // DOWNLOAD
     svr.Get("/download", [&](const Request& req, Response& res) {
