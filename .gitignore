@@ -1,0 +1,5 @@
+build/
+vault/
+*.bin
+users.db
+client/
